@@ -1,6 +1,7 @@
 import { useCallback, useState, useEffect } from 'react'
 import { useSerial } from './useSerial'
 import { useSignalGenerator, type GeneratorConfig } from './useSignalGenerator'
+import { useHttp } from './useHttp'
 
 export interface SerialConfig {
   baudRate: number
@@ -10,7 +11,7 @@ export interface SerialConfig {
   flowControl: 'none' | 'hardware'
 }
 
-export type ConnectionType = 'serial' | 'generator'
+export type ConnectionType = 'serial' | 'http' | 'generator'
 
 export interface ConnectionState {
   type: ConnectionType | null
@@ -23,6 +24,7 @@ export interface ConnectionState {
 export interface UseDataConnection {
   state: ConnectionState
   connectSerial: (config: SerialConfig) => Promise<void>
+  connectHttp: (address: string) => Promise<void>
   connectGenerator: (config: GeneratorConfig) => Promise<void>
   disconnect: () => Promise<void>
   write: (data: string) => Promise<void>
@@ -43,22 +45,25 @@ export function useDataConnection(onLine: (line: string) => void): UseDataConnec
   const [isConnecting, setIsConnecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-
   const serial = useSerial()
   const generator = useSignalGenerator(onLine)
+  const http = useHttp()
 
   const state: ConnectionState = {
     type: connectionType,
-    isConnecting: isConnecting || serial.state.isConnecting,
-    isConnected: serial.state.isConnected || generator.isRunning,
-    isSupported: serial.state.isSupported,
-    error: error || serial.state.error
+    isConnecting: isConnecting || serial.state.isConnecting || http.state.isConnecting,
+    isConnected: serial.state.isConnected || generator.isRunning || http.state.isConnected,
+    isSupported: serial.state.isSupported && http.state.isSupported,
+    error: error || serial.state.error || http.state.error
   }
-
 
   const connectSerial = useCallback(async (config: SerialConfig) => {
     if (generator.isRunning) {
       generator.stop()
+    }
+
+    if (http.state.isConnected) {
+      await http.disconnect()
     }
     
     setIsConnecting(true)
@@ -79,11 +84,40 @@ export function useDataConnection(onLine: (line: string) => void): UseDataConnec
     } finally {
       setIsConnecting(false)
     }
-  }, [serial, generator])
+  }, [serial, generator, http])
+
+  const connectHttp = useCallback(async (address: string) => {
+    if (serial.state.isConnected) {
+      await serial.disconnect()
+    }
+
+    if (generator.isRunning) {
+      generator.stop()
+    }
+    
+    setIsConnecting(true)
+    setError(null)
+    
+    try {
+      await http.connect(address)
+      setConnectionType('http')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to connect to HTTP stream'
+      setError(message)
+      setConnectionType(null)
+      throw err
+    } finally {
+      setIsConnecting(false)
+    }
+  }, [serial, generator, http])
 
   const connectGenerator = useCallback(async (config: GeneratorConfig) => {
     if (serial.state.isConnected) {
       await serial.disconnect()
+    }
+
+    if (http.state.isConnected) {
+      await http.disconnect()
     }
     
     setError(null)
@@ -97,7 +131,7 @@ export function useDataConnection(onLine: (line: string) => void): UseDataConnec
       setError(message)
       setConnectionType(null)
     }
-  }, [serial, generator])
+  }, [serial, generator, http])
 
   const disconnect = useCallback(async () => {
     setError(null)
@@ -109,25 +143,34 @@ export function useDataConnection(onLine: (line: string) => void): UseDataConnec
     if (generator.isRunning) {
       generator.stop()
     }
+
+    if (http.state.isConnected) {
+      await http.disconnect()
+    }
     
     setConnectionType(null)
-  }, [serial, generator])
+  }, [serial, generator, http])
 
-  // Set up serial line handler
+  // Set up serial and http line handlers
   useEffect(() => {
     serial.onLine(onLine)
-  }, [serial, onLine])
+    http.onLine(onLine)
+  }, [serial, http, onLine])
 
   const write = useCallback(async (data: string) => {
-    if (connectionType !== 'serial' || !serial.state.isConnected) {
-      throw new Error('Serial port not connected')
+    if (connectionType === 'serial' && serial.state.isConnected) {
+      await serial.write(data)
+    } else if (connectionType === 'http' && http.state.isConnected) {
+      await http.write(data)
+    } else {
+      throw new Error('Not connected')
     }
-    await serial.write(data)
-  }, [connectionType, serial])
+  }, [connectionType, serial, http])
 
   return {
     state,
     connectSerial,
+    connectHttp,
     connectGenerator,
     disconnect,
     write,

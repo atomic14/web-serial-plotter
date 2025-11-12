@@ -142,6 +142,7 @@ function App() {
         <Header
           connectionState={dataConnection.state}
           onConnectSerial={dataConnection.connectSerial}
+          onConnectHttp={dataConnection.connectHttp}
           onConnectGenerator={dataConnection.connectGenerator}
           onDisconnect={dataConnection.disconnect}
           generatorConfig={dataConnection.generatorConfig}

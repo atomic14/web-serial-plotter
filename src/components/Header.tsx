@@ -1,6 +1,6 @@
 import { useState } from 'react'
+import { PlayIcon, StopIcon, XCircleIcon, CircleStackIcon } from '@heroicons/react/24/outline'
 import Button from './ui/Button'
-import { PlayIcon, StopIcon, XCircleIcon } from '@heroicons/react/24/outline'
 import ConnectModal from './ConnectModal'
 import type { ConnectionState, ConnectionType, SerialConfig } from '../hooks/useDataConnection'
 import type { GeneratorConfig } from '../hooks/useSignalGenerator'
@@ -8,6 +8,7 @@ import type { GeneratorConfig } from '../hooks/useSignalGenerator'
 interface Props {
   connectionState: ConnectionState
   onConnectSerial: (config: SerialConfig) => Promise<void>
+  onConnectHttp: (address: string) => Promise<void>
   onConnectGenerator: (config: GeneratorConfig) => Promise<void>
   onDisconnect: () => Promise<void>
   generatorConfig: GeneratorConfig
@@ -41,18 +42,18 @@ function getButtonVariant(state: ConnectionState) {
 export function Header({ 
   connectionState, 
   onConnectSerial, 
+  onConnectHttp, 
   onConnectGenerator, 
   onDisconnect, 
   generatorConfig 
 }: Props) {
-  const [showModal, setShowModal] = useState(false)
-  
+  const [showConnectModal, setShowConnectModal] = useState(false)
 
   const handleButtonClick = () => {
     if (connectionState.isConnected) {
       onDisconnect()
     } else {
-      setShowModal(true)
+      setShowConnectModal(true)
     }
   }
 
@@ -60,6 +61,7 @@ export function Header({
     <>
       <header className="flex items-center justify-between gap-4 py-3 px-4 border-b border-neutral-800">
         <div className="flex items-center gap-3">
+          <CircleStackIcon className="w-6 h-6" />
           <div className="text-lg font-semibold tracking-tight">Web Serial Plotter</div>
         </div>
         <div className="flex items-center gap-4">
@@ -85,9 +87,10 @@ export function Header({
       </header>
 
       <ConnectModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        isOpen={showConnectModal}
+        onClose={() => setShowConnectModal(false)}
         onConnectSerial={onConnectSerial}
+        onConnectHttp={onConnectHttp}
         onConnectGenerator={onConnectGenerator}
         isConnecting={connectionState.isConnecting}
         isSupported={connectionState.isSupported}

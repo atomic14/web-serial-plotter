@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { XMarkIcon, WifiIcon, SignalIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, WifiIcon, SignalIcon, GlobeAltIcon } from '@heroicons/react/24/outline'
 import Button from './ui/Button'
 import Input from './ui/Input'
 import Select from './ui/Select'
@@ -12,6 +12,7 @@ interface Props {
   isOpen: boolean
   onClose: () => void
   onConnectSerial: (config: SerialConfig) => Promise<void>
+  onConnectHttp: (address: string) => Promise<void>
   onConnectGenerator: (config: GeneratorConfig) => Promise<void>
   isConnecting: boolean
   isSupported: boolean
@@ -24,6 +25,7 @@ export function ConnectModal({
   isOpen,
   onClose,
   onConnectSerial,
+  onConnectHttp,
   onConnectGenerator,
   isConnecting,
   isSupported,
@@ -32,6 +34,7 @@ export function ConnectModal({
   const [activeTab, setActiveTab] = useState<ConnectionType>('serial')
   const [serialConfig, setSerialConfig] = useState<SerialConfig>(DEFAULT_SERIAL_CONFIG)
   const [localGeneratorConfig, setLocalGeneratorConfig] = useState<GeneratorConfig>(generatorConfig)
+  const [httpConfig, setHttpConfig] = useState<{ address: string }>({ address: '' })
 
   if (!isOpen) return null
 
@@ -41,6 +44,16 @@ export function ConnectModal({
       onClose()
     } catch {
       // Keep modal open on error so user can try again
+    }
+  }
+
+  const handleHttpConnect = async () => {
+    try {
+      await onConnectHttp(httpConfig.address)
+      onClose()
+    } catch (e) {
+      // Keep modal open on error so user can try again
+      console.log(e)
     }
   }
 
@@ -79,6 +92,17 @@ export function ConnectModal({
           >
             <WifiIcon className="w-4 h-4" />
             Serial Port
+          </button>
+          <button
+            onClick={() => setActiveTab('http')}
+            className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${
+              activeTab === 'http'
+                ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            <GlobeAltIcon className="w-4 h-4" />
+            HTTP/WS Stream
           </button>
           <button
             onClick={() => setActiveTab('generator')}
@@ -174,6 +198,44 @@ export function ConnectModal({
                   className="w-full"
                 >
                   {isConnecting ? 'Connecting...' : 'Connect Serial Port'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'http' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">HTTP Stream or WebSocket URL</label>
+                <Input
+                  type="url"
+                  className="w-full"
+                  placeholder="http://microcontroller.local:1234"
+                  value={httpConfig.address}
+                  onChange={(e) => setHttpConfig(prev => ({ 
+                    ...prev, 
+                    address: e.target.value
+                  }))}
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Enter URL for HTTP streaming endpoint or WebSocket server
+                </p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Response must have Access-Control-Allow-Origin header set to * or this domain
+                </p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {document.location.protocol == 'https:' ? 'Server must use HTTPS/WSS due to browser restrictions as this is an HTTPS page' : ''}
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-gray-200 dark:border-neutral-700">
+                <Button
+                  variant="primary"
+                  onClick={handleHttpConnect}
+                  disabled={!httpConfig.address || isConnecting}
+                  className="w-full"
+                >
+                  {isConnecting ? 'Connecting...' : 'Connect to HTTP or WebSocket server'}
                 </Button>
               </div>
             </div>
