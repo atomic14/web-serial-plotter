@@ -1,7 +1,7 @@
 import { forwardRef, useState, useRef, useEffect } from 'react'
 import Button from './ui/Button'
 import Tooltip from './ui/Tooltip'
-import { PlayIcon, PauseIcon, MagnifyingGlassPlusIcon, MagnifyingGlassMinusIcon, CameraIcon, ArrowDownTrayIcon, CogIcon } from '@heroicons/react/24/outline'
+import { PlayIcon, PauseIcon, MagnifyingGlassPlusIcon, MagnifyingGlassMinusIcon, CameraIcon, ArrowDownTrayIcon, CogIcon, TrashIcon } from '@heroicons/react/24/outline'
 import type { ChartExportOptions } from '../utils/chartExport'
 
 interface Props {
@@ -12,10 +12,11 @@ interface Props {
   onSavePng: () => Promise<void> | void
   onExportCsv: (options: ChartExportOptions) => void
   onShowSettings: () => void
+  onClearChart: () => void
   hasData: boolean
 }
 
-const PlotToolsOverlay = forwardRef<HTMLDivElement, Props>(function PlotToolsOverlay({ frozen, onToggleFrozen, onZoomIn, onZoomOut, onSavePng, onExportCsv, onShowSettings, hasData }, ref) {
+const PlotToolsOverlay = forwardRef<HTMLDivElement, Props>(function PlotToolsOverlay({ frozen, onToggleFrozen, onZoomIn, onZoomOut, onSavePng, onExportCsv, onShowSettings, onClearChart, hasData }, ref) {
   const [showExportMenu, setShowExportMenu] = useState(false)
   const exportMenuRef = useRef<HTMLDivElement>(null)
 
@@ -117,6 +118,12 @@ const PlotToolsOverlay = forwardRef<HTMLDivElement, Props>(function PlotToolsOve
       <Tooltip label="Save PNG">
         <Button id="tour-tool-savepng" size="sm" variant="neutral" aria-label="Save PNG" onClick={onSavePng}>
           <CameraIcon className="w-5 h-5" />
+        </Button>
+      </Tooltip>
+
+      <Tooltip label="Clear Chart">
+        <Button id="tour-tool-clearchart" size="sm" variant="danger" aria-label="Clear Chart" onClick={onClearChart} disabled={!hasData}>
+          <TrashIcon className="w-5 h-5" />
         </Button>
       </Tooltip>
 

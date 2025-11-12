@@ -194,6 +194,10 @@ function App() {
                     const dataUrl = await captureElementPng(node, { pixelRatio: 2, backgroundColor: bg.trim() || '#fff', paddingPx: 12 })
                     downloadDataUrlPng(dataUrl, `plot-${Date.now()}.png`)
                   }}
+                  onClearChart={() => {
+                    // Reset the store with current capacity, viewport size and series names
+                    store.reset(store.getCapacity(), store.getViewPortSize(), store.getSeries().map(x=>x.name))
+                  }}
                 />
               </div>
 
