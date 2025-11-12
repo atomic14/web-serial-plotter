@@ -44,7 +44,7 @@ export function exportMessagesAsJson(messages: ConsoleMessage[]): string {
   return JSON.stringify(exportData, null, 2)
 }
 
-export function downloadFile(content: string, filename: string, mimeType: string) {
+export function downloadFile(content: string | Uint8Array, filename: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType })
   const url = URL.createObjectURL(blob)
   

@@ -70,7 +70,8 @@ describe('chartExport', () => {
       const result = exportVisibleChartDataAsCsv(mockViewPortData, {
         scope: 'visible',
         includeTimestamps: true,
-        timeFormat: 'iso'
+        timeFormat: 'iso',
+        format: 'csv'
       })
       
       const lines = result.split('\n')
@@ -85,7 +86,8 @@ describe('chartExport', () => {
       const result = exportVisibleChartDataAsCsv(mockViewPortData, {
         scope: 'visible',
         includeTimestamps: true,
-        timeFormat: 'relative'
+        timeFormat: 'relative',
+        format: 'csv'
       })
       
       const lines = result.split('\n')
@@ -99,7 +101,8 @@ describe('chartExport', () => {
     it('should export data without timestamps', () => {
       const result = exportVisibleChartDataAsCsv(mockViewPortData, {
         scope: 'visible',
-        includeTimestamps: false
+        includeTimestamps: false,
+        format: 'csv'
       })
       
       const lines = result.split('\n')
@@ -126,7 +129,8 @@ describe('chartExport', () => {
       const result = exportAllChartDataAsCsv(mockStore, {
         scope: 'all',
         includeTimestamps: true,
-        timeFormat: 'iso'
+        timeFormat: 'iso',
+        format: 'csv'
       })
       
       const lines = result.split('\n')
@@ -178,14 +182,14 @@ describe('chartExport', () => {
     })
 
     it('should export visible data and trigger download', () => {
-      exportChartData(mockViewPortData, mockStore, { scope: 'visible', includeTimestamps: true })
+      exportChartData(mockViewPortData, mockStore, { scope: 'visible', includeTimestamps: true, format: 'csv' })
       
       expect(document.createElement).toHaveBeenCalledWith('a')
       expect(document.body.appendChild).toHaveBeenCalled()
     })
 
     it('should export all data and trigger download', () => {
-      exportChartData(mockViewPortData, mockStore, { scope: 'all', includeTimestamps: true })
+      exportChartData(mockViewPortData, mockStore, { scope: 'all', includeTimestamps: true, format: 'csv' })
       
       expect(document.createElement).toHaveBeenCalledWith('a')
       expect(document.body.appendChild).toHaveBeenCalled()

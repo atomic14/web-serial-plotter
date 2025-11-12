@@ -7,6 +7,7 @@ export interface ChartExportOptions {
   scope: ChartExportScope
   includeTimestamps?: boolean
   timeFormat?: 'iso' | 'relative' | 'timestamp'
+  format: 'csv' | 'wav'
 }
 
 export function formatChartTimestamp(timestamp: number, format: 'iso' | 'relative' | 'timestamp', baseTime?: number): string {
@@ -26,7 +27,7 @@ export function formatChartTimestamp(timestamp: number, format: 'iso' | 'relativ
 
 export function exportVisibleChartDataAsCsv(
   snapshot: ViewPortData, 
-  options: ChartExportOptions = { scope: 'visible', includeTimestamps: true, timeFormat: 'iso' }
+  options: ChartExportOptions = { scope: 'visible', includeTimestamps: true, timeFormat: 'iso', format: 'csv' }
 ): string {
   const { series, getTimes, getSeriesData, firstTimestamp } = snapshot
   const times = getTimes()
@@ -73,7 +74,7 @@ export function exportVisibleChartDataAsCsv(
 
 export function exportAllChartDataAsCsv(
   store: RingStore,
-  options: ChartExportOptions = { scope: 'all', includeTimestamps: true, timeFormat: 'iso' }
+  options: ChartExportOptions = { scope: 'all', includeTimestamps: true, timeFormat: 'iso', format: 'csv' }
 ): string {
   const series = store.getSeries()
   
@@ -133,6 +134,97 @@ export function exportAllChartDataAsCsv(
   return csvLines.join('\n')
 }
 
+
+export function exportAllChartDataAsWav(
+  store: RingStore
+): Uint8Array {
+  const series = store.getSeries()
+  if (series.length === 0) {
+    throw new Error('No data available')
+  }
+
+  const capacity = store.getCapacity()
+  const writeIndex = store.writeIndex
+  const totalSamples = Math.min(writeIndex, capacity)
+
+  if (totalSamples === 0) {
+    throw new Error('No data available')
+  }
+
+  const numChannels = series.length
+  const sampleRate = 8000 // TODO: Let the user choose the sample rate in a modal before the file is exported
+
+  // Determine the range of valid data
+  const startIndex = writeIndex > capacity ? writeIndex - capacity : 0
+  const endIndex = writeIndex - 1
+  const numFrames = endIndex - startIndex + 1
+
+  // Prepare interleaved float32 buffer
+  const interleaved = new Float32Array(numFrames * numChannels)
+  let ptr = 0
+
+  for (let i = startIndex; i <= endIndex; i++) {
+    const ringIndex = i % capacity
+    for (let ch = 0; ch < numChannels; ch++) {
+      const value = store.buffers[ch][ringIndex]
+      interleaved[ptr++] = Number.isFinite(value) ? value : 0
+    }
+  }
+
+  // WAV file construction
+  const bytesPerSample = 4
+  const blockAlign = numChannels * bytesPerSample
+  const byteRate = sampleRate * blockAlign
+  const dataSize = interleaved.length * bytesPerSample
+  const buffer = new ArrayBuffer(44 + dataSize)
+  const view = new DataView(buffer)
+  let offset = 0
+
+  function writeString(str: string) {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset++, str.charCodeAt(i))
+    }
+  }
+
+  function writeUint32(val: number) {
+    view.setUint32(offset, val, true)
+    offset += 4
+  }
+
+  function writeUint16(val: number) {
+    view.setUint16(offset, val, true)
+    offset += 2
+  }
+
+  // RIFF header
+  writeString('RIFF')
+  writeUint32(36 + dataSize) // file size minus 8 bytes
+  writeString('WAVE')
+
+  // fmt subchunk
+  writeString('fmt ')
+  writeUint32(16) // Subchunk1Size
+  writeUint16(3) // Audio format 3 = IEEE float
+  writeUint16(numChannels)
+  writeUint32(sampleRate)
+  writeUint32(byteRate)
+  writeUint16(blockAlign)
+  writeUint16(bytesPerSample * 8) // bits per sample
+
+  // data subchunk
+  writeString('data')
+  writeUint32(dataSize)
+
+  // Write interleaved float32 samples
+  for (let i = 0; i < interleaved.length; i++) {
+    view.setFloat32(offset, interleaved[i], true)
+    offset += 4
+  }
+
+  return new Uint8Array(buffer)
+}
+
+
 export function exportChartData(
   snapshot: ViewPortData,
   store: RingStore,
@@ -140,15 +232,29 @@ export function exportChartData(
 ) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
   const scopeLabel = options.scope === 'visible' ? 'visible' : 'all'
-  const filename = `chart-data-${scopeLabel}-${timestamp}.csv`
   
-  let csvContent: string
-  
-  if (options.scope === 'visible') {
-    csvContent = exportVisibleChartDataAsCsv(snapshot, options)
-  } else {
-    csvContent = exportAllChartDataAsCsv(store, options)
+  if (options.format == 'csv') {
+    const filename = `chart-data-${scopeLabel}-${timestamp}.csv`
+
+    let csvContent: string
+    
+    if (options.scope === 'visible') {
+      csvContent = exportVisibleChartDataAsCsv(snapshot, options)
+    } else {
+      csvContent = exportAllChartDataAsCsv(store, options)
+    }
+    
+    downloadFile(csvContent, filename, 'text/csv')
+  } else if (options.format == 'wav') {
+    const filename = `chart-data-${scopeLabel}-${timestamp}_LOUD.wav`
+
+    let wavContent: Uint8Array
+    if (options.scope === 'visible') {
+      throw new Error('`visible` scope is not supported for WAV export');
+    } else {
+      wavContent = exportAllChartDataAsWav(store)
+    }
+    
+    downloadFile(wavContent, filename, 'audio/wav')
   }
-  
-  downloadFile(csvContent, filename, 'text/csv')
 }
