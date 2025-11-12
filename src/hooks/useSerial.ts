@@ -1,5 +1,10 @@
 import { useCallback, useRef, useState } from 'react'
 
+import type { SerialConfig } from './useDataConnection'
+
+import { decodeCOBS, COBSDecoderError } from '../utils/cobsDecoder.ts'
+
+
 export type BaudRate = 300 | 600 | 1200 | 2400 | 4800 | 9600 | 19200 | 38400 | 57600 | 115200 | 230400 | 460800 | 921600
 
 export interface SerialState {
@@ -79,7 +84,7 @@ export function useSerial(): UseSerial {
     }
   }, []) // No dependencies - use refs for everything
 
-  const connect = useCallback(async (baudRate: number) => {
+  const connect = useCallback(async (config: SerialConfig) => {
     if (!state.isSupported) {
       setState((s) => ({ ...s, error: 'Web Serial not supported in this browser.' }))
       return
@@ -108,54 +113,119 @@ export function useSerial(): UseSerial {
         }
       }
       
-      await port.open({ baudRate })
+      await port.open({ baudRate: config.baudRate })
 
-      const textDecoder = new TextDecoderStream()
-      const readableClosed = port.readable.pipeTo(textDecoder.writable)
-      const reader = textDecoder.readable.getReader()
-      readerRef.current = reader
-      
-      const writer = port.writable.getWriter()
-      writerRef.current = writer
-      portRef.current = port
-      
-      setState((s) => ({ ...s, port, isConnected: true }))
+      if (config.encoding === 'ascii') {
+        const textDecoder = new TextDecoderStream()
+        const readableClosed = port.readable.pipeTo(textDecoder.writable)
+        const reader = textDecoder.readable.getReader()
+        readerRef.current = reader
 
-      const abort = new AbortController()
-      abortControllerRef.current = abort
+        const writer = port.writable.getWriter()
+        writerRef.current = writer
+        portRef.current = port
 
-      let buffer = ''
-      ;(async () => {
-        try {
-          while (true) {
-            const { value, done } = await reader.read()
-            if (done) break
-            if (value) {
-              buffer += value
-              let index
-              while ((index = buffer.indexOf('\n')) >= 0) {
-                const line = buffer.slice(0, index).replace(/\r$/, '')
-                buffer = buffer.slice(index + 1)
-                lineHandlerRef.current?.(line)
+        setState((s) => ({ ...s, port, isConnected: true }))
+
+        const abort = new AbortController()
+        abortControllerRef.current = abort
+
+        let buffer = ''
+        ;(async () => {
+          try {
+            while (true) {
+              const { value, done } = await reader.read()
+              if (done) break
+              if (value) {
+                buffer += value
+                let index
+                while ((index = buffer.indexOf('\n')) >= 0) {
+                  const line = buffer.slice(0, index).replace(/\r$/, '')
+                  buffer = buffer.slice(index + 1)
+                  lineHandlerRef.current?.(line)
+                }
               }
             }
-          }
-        } catch {
-          // ignore if aborted
-        } finally {
-          try {
-            reader.releaseLock()
           } catch {
-            // ignore
+            // ignore if aborted
+          } finally {
+            try {
+              reader.releaseLock()
+            } catch {
+              // ignore
+            }
+            try {
+              await readableClosed.catch(() => {})
+            } catch {
+              // ignore
+            }
+            setState((s) => ({ ...s, readerLocked: false }))
           }
+        })()
+      } else if (config.encoding === 'cobs-f32') {
+        const reader = port.readable.getReader()
+        readerRef.current = reader
+
+        const writer = port.writable.getWriter()
+        writerRef.current = writer
+        portRef.current = port
+
+        setState((s) => ({ ...s, port, isConnected: true }))
+
+        const abort = new AbortController()
+        abortControllerRef.current = abort
+        
+        let buffer = [];
+        (async () => {
           try {
-            await readableClosed.catch(() => {})
-          } catch {
-            // ignore
+            while (true) {
+              const { value, done } = await reader.read()
+              if (done) break
+              if (value) {
+                for (const byte of value) {
+                  if (byte === 0x00) {
+                    // End of COBS packet
+                    if (buffer.length > 0) {
+                      try {
+                        const decoded = decodeCOBS(buffer)
+                        const converted = new Float32Array(decoded.buffer, 0, Math.floor(decoded.byteLength/4));
+
+                        // disgusting hack because I don't feel like refactoring stuff right now
+                        const line = converted.map((x: number)=>x.toString()).join(' ');
+                        lineHandlerRef.current?.(line);
+
+                      } catch (err) { // catch COBS decoding errors
+                        if (err instanceof COBSDecoderError) {
+                          console.log(err);
+                        } else {
+                          throw err;
+                        }
+                      }
+
+                      buffer = [] // reset for next packet
+                    }
+                  } else {
+                    buffer.push(byte)
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            if (e instanceof Error && e.name === "AbortError") {
+                // ignore if aborted
+            } else {
+              throw e;
+            }
+          } finally {
+            try {
+              reader.releaseLock()
+            } catch {
+              // ignore
+            }
+            setState((s) => ({ ...s, readerLocked: false }))
           }
-          setState((s) => ({ ...s, readerLocked: false }))
-        }
-      })()
+        })()
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to connect.'
       setState((s) => ({ ...s, error: message }))

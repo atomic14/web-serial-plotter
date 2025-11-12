@@ -237,7 +237,7 @@ Firefox and Safari do not support Web Serial at this time. On desktop, use Chrom
 
 **Potential Future Enhancements:**
 - Session save/load (plot configurations and data)
-- Binary protocol support (CBOR/SLIP/COBS)
+- More binary protocol support (CBOR/SLIP) (already supports COBS)
 - Advanced data processing filters (moving average, FFT)
 - Cursor/crosshair tools for precise measurements
 - Keyboard navigation and accessibility improvements

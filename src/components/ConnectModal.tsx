@@ -153,8 +153,9 @@ export function ConnectModal({
                     <option value="odd">Odd</option>
                   </Select>
                 </div>
+
                 
-                <div className="col-span-2">
+                <div>
                   <label className="block text-sm font-medium mb-2">Flow Control</label>
                   <Select
                     value={serialConfig.flowControl}
@@ -162,6 +163,17 @@ export function ConnectModal({
                   >
                     <option value="none">None</option>
                     <option value="hardware">Hardware (RTS/CTS)</option>
+                  </Select>
+                </div>
+ 
+                <div>
+                  <label className="block text-sm font-medium mb-2">Encoding</label>
+                  <Select
+                    value={serialConfig.encoding}
+                    onChange={(e) => setSerialConfig(prev => ({ ...prev, encoding: e.target.value as 'ascii' | 'cobs-f32' }))}
+                  >
+                    <option value="ascii">Space-separated base-10</option>
+                    <option value="cobs-f32">COBS float32</option>
                   </Select>
                 </div>
               </div>

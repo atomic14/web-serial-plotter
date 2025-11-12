@@ -8,6 +8,7 @@ export interface SerialConfig {
   stopBits: 1 | 2
   parity: 'none' | 'even' | 'odd'
   flowControl: 'none' | 'hardware'
+  encoding: 'ascii' | 'cobs-f32'
 }
 
 export type ConnectionType = 'serial' | 'generator'
@@ -35,7 +36,8 @@ const DEFAULT_SERIAL_CONFIG: SerialConfig = {
   dataBits: 8,
   stopBits: 1,
   parity: 'none',
-  flowControl: 'none'
+  flowControl: 'none',
+  encoding: 'ascii'
 }
 
 export function useDataConnection(onLine: (line: string) => void): UseDataConnection {
@@ -65,12 +67,10 @@ export function useDataConnection(onLine: (line: string) => void): UseDataConnec
     setError(null)
     
     try {
-      // Convert our config to the format useSerial expects
       // Note: Web Serial API has limited configuration options
-      await serial.connect(config.baudRate)
+      await serial.connect(config);
       setConnectionType('serial')
       // The actual port configuration would need to be done at the port.open() level
-      // For now, we'll just use baudRate as useSerial currently does
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to connect to serial port'
       setError(message)
