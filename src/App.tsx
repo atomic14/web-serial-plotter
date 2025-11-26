@@ -15,6 +15,7 @@ import { captureElementPng, downloadDataUrlPng } from './utils/screenshot'
 import PlotToolsOverlay from './components/PlotToolsOverlay'
 import TabNav from './components/TabNav'
 import SerialConsole from './components/SerialConsole'
+import ConsoleInput from './components/ConsoleInput'
 import Footer from './components/Footer'
 import { exportChartData, type ChartExportOptions } from './utils/chartExport'
 import { driver } from 'driver.js'
@@ -275,6 +276,10 @@ function App() {
                   onClose={() => setShowSettingsPanel(false)}
                 />
               </div>
+              <ConsoleInput
+                onSend={dataConnection.write}
+                disabled={!dataConnection.state.isConnected}
+              />
             </div>
           ) : (
             <div className="flex-1 min-h-0">
