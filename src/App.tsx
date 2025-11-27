@@ -90,6 +90,25 @@ function App() {
 
   const dataConnection = useDataConnection(handleIncomingLine)
 
+  const handleSendMessage = useCallback(async (message: string) => {
+    try {
+      const isControlChar = message.length === 1 && message.charCodeAt(0) < 32
+      const messageToSend = isControlChar ? message : (message.endsWith('\n') ? message : message + '\n')
+
+      if (isControlChar) {
+        const code = message.charCodeAt(0)
+        const ctrlName = code === 3 ? '^C (ETX)' : code === 4 ? '^D (EOT)' : `^${String.fromCharCode(64 + code)}`
+        consoleStore.addOutgoing(ctrlName)
+      } else {
+        consoleStore.addOutgoing(message)
+      }
+
+      await dataConnection.write(messageToSend)
+    } catch (error) {
+      consoleStore.addOutgoing(`Error: ${error instanceof Error ? error.message : 'Failed to send'}`, 'error')
+    }
+  }, [dataConnection, consoleStore])
+
   const canvasRef = useRef<PlotCanvasHandle | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const plotContainerRef = useRef<HTMLDivElement | null>(null)
@@ -277,7 +296,7 @@ function App() {
                 />
               </div>
               <ConsoleInput
-                onSend={dataConnection.write}
+                onSend={handleSendMessage}
                 disabled={!dataConnection.state.isConnected}
               />
             </div>
