@@ -163,6 +163,14 @@ The Console tab provides direct device communication:
 - **Export Options**: Save console logs as TXT, CSV, or JSON files
 - **Configurable Buffer**: Adjust message history size (10-10,000 messages)
 
+### Settings Profiles
+Save and restore your preferred configurations:
+- **Default Profile**: Standard settings for new sessions
+- **Custom Profile**: Appears when you modify Default settings
+- **Save Profile**: Create named profiles from Custom settings
+- **Overwrite/Save As**: Update existing profiles or create new ones
+- Profiles persist in browser storage across sessions
+
 ## Browser Support
 
 The Web Serial API is supported in modern Chromium‑based browsers:
