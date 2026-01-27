@@ -11,8 +11,9 @@ A basic example that generates simulated sensor data with 4 series:
 - Light (lux)
 
 ### Features
-- Outputs data at 10 Hz (100ms intervals)
+- Outputs data at 50 Hz (20ms intervals)
 - Uses sine waves with random noise for realistic sensor simulation
+- Demonstrates bracket-based filtering with mixed debug/data output
 - Includes proper header line with series names
 - Compatible with standard Arduino boards (Uno, Nano, ESP32, etc.)
 
@@ -27,18 +28,34 @@ A basic example that generates simulated sensor data with 4 series:
 
 ### Data Format
 
-The sketch outputs data in the format expected by the Web Serial Plotter:
+The sketch outputs data using the bracket-based filtering format:
 
 ```
-# Temperature,Humidity,Pressure,Light
-22.45,65.23,1015.67,789.12
-22.67,64.89,1015.23,792.45
+Chart header:
+[# Temperature,Humidity,Pressure,Light]
+Chart values:
+[22.45,65.23,1015.67,789.12]
+[22.67,64.89,1015.23,792.45]
+[23.01,65.45,1016.12,791.23]
 ...
 ```
 
-- Header line starts with `#` followed by comma-separated series names
-- Data lines contain comma-separated numerical values
-- Each line represents one time sample across all series
+**Bracket Filtering (Enabled by Default):**
+- Lines enclosed in `[brackets]` are sent to the chart
+- Lines without brackets are shown only in the console
+- This allows mixing debug messages with sensor data on the same serial connection
+
+**Format Rules:**
+- Header line: `[# series1,series2,...]` with `#` prefix and comma-separated names
+- Data lines: `[value1,value2,...]` with comma-separated numerical values
+- Debug/status messages: plain text without brackets (console only)
+- Each bracketed line represents one time sample across all series
+
+**Filter Settings:**
+You can toggle the filters in the Settings panel:
+- **Chart filter**: When ON (default), only `[bracketed]` lines are plotted
+- **Console filter**: When ON (default), `[bracketed]` lines are hidden from console
+- Turn both OFF to use the plotter without filtering (legacy behavior)
 
 ### Customization
 
@@ -47,6 +64,8 @@ You can modify the sketch to:
 - Adjust sampling rate (modify `delay()` value)
 - Change data generation functions
 - Add real sensor readings instead of simulated data
+- Add or remove debug messages
+- Use without brackets for legacy behavior (disable filters in settings)
 
 ### Serial Settings
 

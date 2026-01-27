@@ -30,6 +30,8 @@ function App() {
   const [timeMode, setTimeMode] = useState<'absolute' | 'relative'>('absolute')
   const [activeTab, setActiveTab] = useState<'chart' | 'console'>('chart')
   const [showSettingsPanel, setShowSettingsPanel] = useState(false)
+  const [filterChartData, setFilterChartData] = useState(true)
+  const [filterConsoleData, setFilterConsoleData] = useState(true)
   const tourSteps = useMemo(() => ([
     {
       element: '#tour-connect-button',
@@ -68,16 +70,33 @@ function App() {
   const handleIncomingLine = useCallback((line: string) => {
     setLastLine(line)
     
-    // Send to console store (always log all incoming data)
-    consoleStore.addIncoming(line)
+    const trimmedLine = line.trim()
+    const isBracketed = trimmedLine.startsWith('[') && trimmedLine.endsWith(']')
     
-    // Parse for chart (existing logic)
-    if (line.trim().startsWith('#')) {
-      const names = line.replace(/^\(/, '').replace(/\)$/, '').replace(/^\s*#+\s*/, '').split(/[\s,\t]+/).filter(Boolean)
+    // Determine if line should go to console
+    const sendToConsole = !filterConsoleData || !isBracketed
+    if (sendToConsole) {
+      consoleStore.addIncoming(line)
+    }
+    
+    // Determine if line should go to chart
+    const sendToChart = !filterChartData || isBracketed
+    if (!sendToChart) return
+    
+    // Extract content (remove brackets if present)
+    let content = trimmedLine
+    if (isBracketed) {
+      content = trimmedLine.slice(1, -1).trim()
+    }
+    
+    // Parse for chart
+    if (content.startsWith('#')) {
+      const names = content.replace(/^\s*#+\s*/, '').split(/[\s,\t]+/).filter(Boolean)
       if (names.length > 0) store.setSeries(names)
       return
     }
-    const parts = line.trim().replace(/^\(/, '').replace(/\)$/, '').split(/[\s,\t]+/).filter(Boolean)
+    
+    const parts = content.split(/[\s,\t]+/).filter(Boolean)
     if (parts.length === 0) return
     const values: number[] = []
     for (const p of parts) {
@@ -85,7 +104,7 @@ function App() {
       if (Number.isFinite(v)) values.push(v)
     }
     if (values.length > 0) store.append(values)
-  }, [store, consoleStore])
+  }, [store, consoleStore, filterChartData, filterConsoleData])
 
   const dataConnection = useDataConnection(handleIncomingLine)
 
@@ -263,6 +282,8 @@ function App() {
                     capacity: store.getCapacity(),
                     maxViewPortSize: store.getMaxViewPortSize(),
                     timeMode,
+                    filterChartData,
+                    filterConsoleData,
                   }}
                   onChange={{
                     setAutoscale,
@@ -271,6 +292,8 @@ function App() {
                     setCapacity: (v) => store.setCapacity(v),
                     setMaxViewPortSize: (v) => store.setMaxViewPortSize(v),
                     setTimeMode,
+                    setFilterChartData,
+                    setFilterConsoleData,
                   }}
                   onClose={() => setShowSettingsPanel(false)}
                 />

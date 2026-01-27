@@ -125,14 +125,27 @@ Open the printed local URL (Vite default is `http://localhost:5173`).
 3. Start streaming data - the app supports CSV, space, or tab-separated values
 
 ### Data Format
-Your device should send lines of numeric data:
+Your device should send lines of numeric data with optional bracket-based filtering:
 ```text
-# Optional header defines series names
+# Standard format (works with filters disabled)
 # time(ms), ax, ay, az
 0, 0.01, 0.02, 0.98
 10, 0.02, 0.01, 0.99
-20, 0.03, 0.00, 1.01
+
+# Bracket format (recommended - filters enabled by default)
+Debug: Sensor initialized
+[# Temperature,Humidity,Pressure]
+[22.45,65.23,1015.67]
+Debug: Reading sensor...
+[22.67,64.89,1015.23]
+[23.01,65.45,1016.12]
 ```
+
+**Bracket Filtering (Enabled by Default):**
+- Lines enclosed in `[brackets]` go to the chart
+- Lines without brackets appear only in the console
+- Perfect for mixing debug messages with sensor data
+- Toggle filters in Settings panel if needed
 
 ### Interactive Controls
 - **Pan**: Click and drag on the plot
@@ -162,6 +175,21 @@ The Console tab provides direct device communication:
 - **Message History**: View all incoming and outgoing messages with timestamps
 - **Export Options**: Save console logs as TXT, CSV, or JSON files
 - **Configurable Buffer**: Adjust message history size (10-10,000 messages)
+
+### Settings Profiles
+Save and restore your preferred configurations:
+- **Default Profile**: Standard settings for new sessions
+- **Custom Profile**: Appears when you modify Default settings
+- **Save Profile**: Create named profiles from Custom settings
+- **Overwrite/Save As**: Update existing profiles or create new ones
+- Profiles persist in browser storage across sessions
+
+### Data Filters
+Control which data appears where:
+- **Chart Filter**: Only plot lines enclosed in `[brackets]` (ON by default)
+- **Console Filter**: Hide `[bracketed]` lines from console (ON by default)
+- Use both to separate chart data from debug messages
+- Disable both for legacy behavior (all data goes everywhere)
 
 ## Browser Support
 
