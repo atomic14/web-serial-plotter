@@ -13,6 +13,8 @@ interface Settings {
   capacity: number
   maxViewPortSize: number
   timeMode: 'absolute' | 'relative'
+  filterChartData: boolean
+  filterConsoleData: boolean
 }
 
 interface Props {
@@ -25,6 +27,8 @@ interface Props {
     setCapacity: (v: number) => void
     setMaxViewPortSize: (v: number) => void
     setTimeMode: (v: 'absolute' | 'relative') => void
+    setFilterChartData: (v: boolean) => void
+    setFilterConsoleData: (v: boolean) => void
   }
   onClose: () => void
 }
@@ -40,7 +44,9 @@ const DEFAULT_SETTINGS: Settings = {
   manualMaxInput: '1',
   capacity: 100000,
   maxViewPortSize: 2000,
-  timeMode: 'absolute'
+  timeMode: 'absolute',
+  filterChartData: true,
+  filterConsoleData: true
 }
 
 export default function SettingsPanel({ open, settings, onChange, onClose }: Props) {
@@ -80,7 +86,9 @@ export default function SettingsPanel({ open, settings, onChange, onClose }: Pro
       settings.manualMaxInput === DEFAULT_SETTINGS.manualMaxInput &&
       settings.capacity === DEFAULT_SETTINGS.capacity &&
       settings.maxViewPortSize === DEFAULT_SETTINGS.maxViewPortSize &&
-      settings.timeMode === DEFAULT_SETTINGS.timeMode
+      settings.timeMode === DEFAULT_SETTINGS.timeMode &&
+      settings.filterChartData === DEFAULT_SETTINGS.filterChartData &&
+      settings.filterConsoleData === DEFAULT_SETTINGS.filterConsoleData
 
     if (matchesDefault) {
       setCurrentProfile('Default')
@@ -95,7 +103,9 @@ export default function SettingsPanel({ open, settings, onChange, onClose }: Pro
       p.manualMaxInput === settings.manualMaxInput &&
       p.capacity === settings.capacity &&
       p.maxViewPortSize === settings.maxViewPortSize &&
-      p.timeMode === settings.timeMode
+      p.timeMode === settings.timeMode &&
+      p.filterChartData === settings.filterChartData &&
+      p.filterConsoleData === settings.filterConsoleData
     )
 
     if (matchingProfile) {
@@ -120,6 +130,8 @@ export default function SettingsPanel({ open, settings, onChange, onClose }: Pro
       onChange.setCapacity(DEFAULT_SETTINGS.capacity)
       onChange.setMaxViewPortSize(DEFAULT_SETTINGS.maxViewPortSize)
       onChange.setTimeMode(DEFAULT_SETTINGS.timeMode)
+      onChange.setFilterChartData(DEFAULT_SETTINGS.filterChartData)
+      onChange.setFilterConsoleData(DEFAULT_SETTINGS.filterConsoleData)
       setIsModified(false)
       return
     }
@@ -132,6 +144,8 @@ export default function SettingsPanel({ open, settings, onChange, onClose }: Pro
       onChange.setCapacity(profile.capacity)
       onChange.setMaxViewPortSize(profile.maxViewPortSize)
       onChange.setTimeMode(profile.timeMode)
+      onChange.setFilterChartData(profile.filterChartData)
+      onChange.setFilterConsoleData(profile.filterConsoleData)
       setIsModified(false)
     }
   }, [profiles, onChange])
@@ -314,6 +328,18 @@ export default function SettingsPanel({ open, settings, onChange, onClose }: Pro
             />
             <span className="opacity-70">pts</span>
           </div>
+        </div>
+
+        <div>
+          <div className="text-xs uppercase tracking-wide opacity-70 mb-2">Data Filters</div>
+          <label className="flex items-center gap-2 mb-2">
+            <Checkbox checked={settings.filterChartData} onChange={(e) => onChange.setFilterChartData(e.target.checked)} />
+            <span className="text-xs">Chart: Only [bracketed] lines</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <Checkbox checked={settings.filterConsoleData} onChange={(e) => onChange.setFilterConsoleData(e.target.checked)} />
+            <span className="text-xs">Console: Hide [bracketed] lines</span>
+          </label>
         </div>
 
         {/* Save buttons */}
