@@ -26,7 +26,15 @@ export default function ConsoleLog({ messages }: ConsoleLogProps) {
   }
 
   const formatTimestamp = (timestamp: number) => {
-    return new Date(timestamp).toLocaleTimeString()
+    return new Date(timestamp).toLocaleTimeString(
+      undefined, // use default locale
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        fractionalSecondDigits: 3
+      }
+    )
   }
 
   const getMessageClasses = (message: ConsoleMessage) => {
